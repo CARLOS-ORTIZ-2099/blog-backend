@@ -12,6 +12,7 @@ import fs from 'fs';
 
 import { UserModel }  from './models/User.js';
 import { PostModel } from './models/Post.js';
+import { findRoutes } from './libs/findRoutes.js';
 
 const app = express();
 
@@ -21,10 +22,10 @@ const secret = 'asdfe45we45w345wegw345werjktjwertkj';
 
 // middlewares que ejecutan tareas generales, como leer cookies, servir archivos estaticos, etc
 // cors permite que usuarios desde otros dominios puedan acceder a los recursos de la api
-app.use(cors({ credentials:true , origin:'http://localhost:3000'}));
+app.use(cors({ credentials:true , origin:'http://localhost:5173'}));
 app.use(express.json()); // => analiza son
 app.use(cookieParser()); // => lee y/o analiza las cookies que llegen en la solicitud
-//app.use('/uploads', express.static(__dirname + '/uploads')); // => sirve archivos estaticos
+app.use('/uploads', express.static(findRoutes('uploads'))); // => sirve archivos estaticos
 
 // conexion a la DB 
 mongoose.connect('mongodb://localhost:27017/blog')
@@ -109,7 +110,9 @@ app.post('/post', uploadMiddleware.single('file'), async (req,res) => {
     try {
       // en este punto si todo salio bien multer ya habra configurado un objeto file o files
       // en el objeto global request
-      const {originalname,path} = req.file;
+      const {originalname, path} = req.file;
+      console.log(originalname, path);
+      
       // aqui creamos una ruta personalizada para la imagen que se envie
       const parts = originalname.split('.');
       const ext = parts[parts.length - 1];
@@ -150,14 +153,17 @@ app.put('/post',uploadMiddleware.single('file'), async (req,res) => {
       let newPath = null;
       // si el objeto file existe quiere decir el usuario quiere editar la imagen y esta ya fue procesada por multer
       if (req.file) {
+        console.log(req.file);
+        
         // aqui creamos una ruta personalizada para la imagen que se envie
         const {originalname,path} = req.file;
         const parts = originalname.split('.');
         const ext = parts[parts.length - 1];
         newPath = path+'.'+ext;
-        renameSync(path, newPath);
+        fs.renameSync(path, newPath);
       }
-
+      console.log(newPath);
+      
       // extrayendo el token del objeto request del objeto cookies para comprabar que el usuario este autenticado antes
       // de intentar hacer dicha operacion
       const {token} = req.cookies;
